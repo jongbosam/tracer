@@ -45,16 +45,19 @@ export default function TranscriptionBoard({ canvasRef }: { canvasRef: React.Ref
                 
                 {/* Text Layer (Original Reference Text) */}
                 {char && (
-                  <span 
-                     className="text-[#1a1a1a] pointer-events-none select-none z-10 leading-none"
-                     style={{ 
-                       opacity, 
-                       fontFamily: theme.fontFamily,
-                       fontSize: '7cqw'
-                     }}
-                  >
-                    {char}
-                  </span>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 font-bold">
+                    <span 
+                       className="text-[#1a1a1a] select-none"
+                       style={{ 
+                         opacity, 
+                         fontFamily: theme.fontFamily,
+                         fontSize: '7cqw',
+                         lineHeight: 1
+                       }}
+                    >
+                      {char}
+                    </span>
+                  </div>
                 )}
               </div>
             );

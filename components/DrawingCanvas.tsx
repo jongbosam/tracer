@@ -26,12 +26,11 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef>((props, ref) => {
     // Set explicit size to match CSS display size using ResizeObserver
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        // To maintain sharp lines, consider window.devicePixelRatio, 
-        // but for a simple grid overlay, exact layout dimensions are fine.
         const { width, height } = entry.contentRect;
+        const dpr = window.devicePixelRatio || 1;
         
-        // We only want to resize if the physical size changed, to not wipe canvas on state updates
-        if (canvas.width !== width || canvas.height !== height) {
+        // We only want to resize if the physical size changed
+        if (canvas.style.width !== `${width}px` || canvas.style.height !== `${height}px`) {
            // Save current drawing
            const tempCanvas = document.createElement('canvas');
            tempCanvas.width = canvas.width;
@@ -41,12 +40,26 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef>((props, ref) => {
              tCtx.drawImage(canvas, 0, 0);
            }
 
-           canvas.width = width;
-           canvas.height = height;
+           // Set actual size in memory (scaled to account for extra pixel density)
+           canvas.width = Math.floor(width * dpr);
+           canvas.height = Math.floor(height * dpr);
            
-           // Restore current drawing
+           // Normalize coordinate system to use css pixels
+           context.setTransform(1, 0, 0, 1, 0, 0); // Reset existing transform first
+           context.scale(dpr, dpr);
+
+           // Set display size (css pixels)
+           canvas.style.width = `${width}px`;
+           canvas.style.height = `${height}px`;
+           
+           // Restore current drawing, mapping it correctly
            if (tCtx && tempCanvas.width > 0) {
-             context.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, width, height);
+             // old display dimensions were tempCanvas.width/oldDpr
+             // For simplicity, drawn relative to full width/height
+             context.save();
+             context.setTransform(1, 0, 0, 1, 0, 0); // reset transform for drawing
+             context.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, canvas.width, canvas.height);
+             context.restore();
            }
            
            context.lineCap = 'round';

@@ -116,7 +116,7 @@ export default function ClientPage() {
         )}
 
         <header 
-          className={`sticky top-0 z-40 w-full text-center py-4 md:py-8 bg-[#fdfbf7] transition-opacity duration-1000 ease-in-out border-b border-[#e3dfd6]/30 ${isFading ? 'opacity-0' : ''}`}
+          className={`relative md:sticky md:top-0 md:z-40 w-full text-center py-4 md:py-8 bg-[#fdfbf7] transition-opacity duration-1000 ease-in-out border-b border-[#e3dfd6]/30 ${isFading ? 'opacity-0' : ''}`}
         >
           <div className="max-w-2xl mx-auto px-4">
             <p className="text-[10px] md:text-xs italic text-[#8c887d] mb-1 md:mb-2 uppercase tracking-tighter">오늘의 문장</p>
@@ -125,7 +125,7 @@ export default function ClientPage() {
           </div>
         </header>
 
-        <div className="w-full max-w-5xl mx-auto mb-8">
+        <div className="w-full max-w-5xl mx-auto mb-8 bg-[#fdfbf7] sticky top-0 z-30 pt-2 md:pt-0 md:static">
            <TranscriptionBoard canvasRef={canvasRef} />
         </div>
         
