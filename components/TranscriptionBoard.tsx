@@ -19,7 +19,10 @@ export default function TranscriptionBoard({ canvasRef }: { canvasRef: React.Ref
         {/* Background CSS Grid (10 columns) */}
         <div 
           className="grid grid-cols-10 border-t border-l"
-          style={{ borderColor: theme.gridColor }}
+          style={{ 
+            borderColor: theme.gridColor,
+            containerType: 'inline-size'
+          }}
         >
           {currentChars.map((char, index) => {
             // Determine styling based on OCR validation result
@@ -43,8 +46,12 @@ export default function TranscriptionBoard({ canvasRef }: { canvasRef: React.Ref
                 {/* Text Layer (Original Reference Text) */}
                 {char && (
                   <span 
-                     className="text-lg sm:text-2xl md:text-5xl lg:text-7xl text-[#1a1a1a] pointer-events-none select-none z-10"
-                     style={{ opacity, fontFamily: theme.fontFamily }}
+                     className="text-[#1a1a1a] pointer-events-none select-none z-10 leading-none"
+                     style={{ 
+                       opacity, 
+                       fontFamily: theme.fontFamily,
+                       fontSize: '7cqw'
+                     }}
                   >
                     {char}
                   </span>

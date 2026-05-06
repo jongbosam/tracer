@@ -46,7 +46,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef>((props, ref) => {
            
            // Restore current drawing
            if (tCtx && tempCanvas.width > 0) {
-             context.drawImage(tempCanvas, 0, 0);
+             context.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, width, height);
            }
            
            context.lineCap = 'round';
