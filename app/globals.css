@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'GaramYeonggot';
+  src: url('/font1.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Galmaetgeul';
+  src: url('/font2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}

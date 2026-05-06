@@ -1,0 +1,6 @@
+{
+  "name": "Tracer_App",
+  "description": "A web application for tracing text on a 10-cell grid notebook layout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
