@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-
-// Sample text for the application
-const SAMPLE_TEXT = "죽는 날까지 하늘을 우러러 한 점 부끄럼이 없기를,\n잎새에 이는 바람에도 나는 괴로워했다.\n별을 노래하는 마음으로 모든 죽어가는 것을 사랑해야지.\n그리고 나한테 주어진 길을 걸어가야겠다.\n오늘 밤에도 별이 바람에 스치운다.";
+import { SAMPLE_TEXTS } from '../lib/sample-texts';
 
 const COLS = 10;
 const ROWS = 5;
@@ -20,11 +18,12 @@ function processTextIntoPages(text: string): string[][] {
       // Pad to the end of the current line (nearest multiple of 10)
       const currentLength = currentPageHolder.length;
       const remainder = currentLength % COLS;
-      if (remainder !== 0 || currentLength === 0) {
-        const padding = COLS - remainder;
-        for (let p = 0; p < padding; p++) {
-          currentPageHolder.push('');
-        }
+      
+      // If we are exactly at the start of a line (remainder === 0), it means 
+      // we need a FULL empty line of padding for this `\n`.
+      const padding = remainder === 0 ? COLS : (COLS - remainder);
+      for (let p = 0; p < padding; p++) {
+        currentPageHolder.push('');
       }
     } else {
       currentPageHolder.push(char);
@@ -55,6 +54,7 @@ interface Stats {
 }
 
 interface AppState {
+  currentTextIndex: number;
   pages: string[][];
   currentPage: number;
   opacity: number;
@@ -74,6 +74,7 @@ interface AppState {
   isSettingsOpen: boolean;
   
   // Actions
+  setTextIndex: (index: number) => void;
   setOpacity: (val: number) => void;
   nextPage: () => void;
   prevPage: () => void;
@@ -90,9 +91,10 @@ interface AppState {
   toggleSettings: () => void;
 }
 
-const initialPages = processTextIntoPages(SAMPLE_TEXT);
+const initialPages = processTextIntoPages(SAMPLE_TEXTS[0].text);
 
 export const useStore = create<AppState>((set) => ({
+  currentTextIndex: 0,
   pages: initialPages,
   currentPage: 0,
   opacity: 0.5, // Increased default from 0.35 for better visibility
@@ -114,6 +116,19 @@ export const useStore = create<AppState>((set) => ({
     fontFamily: 'serif',
   },
   isSettingsOpen: false,
+
+  setTextIndex: (index) => set(() => {
+    const pages = processTextIntoPages(SAMPLE_TEXTS[index].text);
+    return {
+      currentTextIndex: index,
+      pages,
+      currentPage: 0,
+      cellResults: new Array(CHARS_PER_PAGE).fill(null),
+      timer: 0,
+      isTimerRunning: false,
+      stats: { completion: 0, accuracy: 100, errorCount: 0 }
+    };
+  }),
 
   setOpacity: (val) => set({ opacity: val }),
   

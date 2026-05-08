@@ -2,9 +2,12 @@
 
 import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
+import { SAMPLE_TEXTS } from '../lib/sample-texts';
 import { Eraser } from 'lucide-react';
 
 export default function Sidebar({ onClearCanvas, onCheck }: { onClearCanvas: () => void, onCheck: () => void }) {
+  const currentTextIndex = useStore((state) => state.currentTextIndex);
+  const setTextIndex = useStore((state) => state.setTextIndex);
   const opacity = useStore((state) => state.opacity);
   const setOpacity = useStore((state) => state.setOpacity);
   const penColor = useStore((state) => state.penColor);
@@ -60,21 +63,45 @@ export default function Sidebar({ onClearCanvas, onCheck }: { onClearCanvas: () 
               <p className="text-base md:text-xl font-medium">{formatTime(timer)}</p>
             </div>
             <div className="bg-white p-2 md:p-4 rounded-xl md:rounded-2xl shadow-sm border border-[#ede9e1]">
-              <p className="text-[9px] md:text-[10px] uppercase tracking-tighter text-[#8c887d] mb-0.5 md:mb-1">Completion</p>
+              <p className="text-[9px] md:text-[10px] uppercase tracking-tighter text-[#8c887d] mb-0.5 md:mb-1">진행률</p>
               <p className="text-base md:text-xl font-medium">{stats.completion}%</p>
             </div>
             <div className="bg-white p-2 md:p-4 rounded-xl md:rounded-2xl shadow-sm border border-[#ede9e1]">
-              <p className="text-[9px] md:text-[10px] uppercase tracking-tighter text-[#8c887d] mb-0.5 md:mb-1">Accuracy</p>
+              <p className="text-[9px] md:text-[10px] uppercase tracking-tighter text-[#8c887d] mb-0.5 md:mb-1">정확도</p>
               <p className="text-base md:text-xl font-medium text-emerald-700">{stats.accuracy}%</p>
             </div>
             <div className="bg-white p-2 md:p-4 rounded-xl md:rounded-2xl shadow-sm border border-[#ede9e1]">
-              <p className="text-[9px] md:text-[10px] uppercase tracking-tighter text-[#8c887d] mb-0.5 md:mb-1">Typos</p>
+              <p className="text-[9px] md:text-[10px] uppercase tracking-tighter text-[#8c887d] mb-0.5 md:mb-1">오탈자</p>
               <p className="text-base md:text-xl font-medium text-rose-700">{stats.errorCount}</p>
             </div>
           </div>
         </div>
 
         <div className="flex-1 space-y-4 md:space-y-6">
+          {/* Text Selection */}
+          <div>
+            <label className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c887d] block mb-2 font-sans font-bold">
+              원문 선택
+            </label>
+            <select
+              value={currentTextIndex}
+              onChange={(e) => {
+                setTextIndex(Number(e.target.value));
+                onClearCanvas();
+              }}
+              className="w-full bg-white border border-[#e3dfd6] p-2 rounded-lg text-sm font-sans focus:outline-none focus:ring-1 focus:ring-[#5a5a40]"
+            >
+              {SAMPLE_TEXTS.map((text, idx) => (
+                <option key={idx} value={idx}>
+                  {text.title} ({text.gradeLevel}학년)
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-[10px] text-[#8c887d] font-sans">
+              {SAMPLE_TEXTS[currentTextIndex]?.note}
+            </p>
+          </div>
+
           {/* Text Overlay Controls */}
           <div>
             <label className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c887d] block mb-2 md:mb-4 font-sans font-bold">
@@ -142,7 +169,7 @@ export default function Sidebar({ onClearCanvas, onCheck }: { onClearCanvas: () 
            onClick={onCheck}
            className="flex-1 md:w-full py-3 md:py-4 bg-[#5a5a40] text-white rounded-full font-sans text-[10px] md:text-sm tracking-widest uppercase hover:opacity-90 transition-opacity"
          >
-            Verify
+            확인하기
          </button>
          <button 
            onClick={onClearCanvas}

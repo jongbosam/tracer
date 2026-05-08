@@ -116,12 +116,12 @@ export default function ClientPage() {
         )}
 
         <header 
-          className={`relative md:sticky md:top-0 md:z-40 w-full text-center py-4 md:py-8 bg-[#fdfbf7] transition-opacity duration-1000 ease-in-out border-b border-[#e3dfd6]/30 ${isFading ? 'opacity-0' : ''}`}
+          className={`w-full h-[160px] md:h-[200px] flex flex-col items-center justify-center text-center bg-[#fdfbf7] transition-opacity duration-1000 ease-in-out border-b border-[#e3dfd6]/30 shrink-0 ${isFading ? 'opacity-0' : ''}`}
         >
           <div className="max-w-2xl mx-auto px-4">
             <p className="text-[10px] md:text-xs italic text-[#8c887d] mb-1 md:mb-2 uppercase tracking-tighter">오늘의 문장</p>
             <h1 className="text-lg md:text-2xl font-normal mb-2 md:mb-3 leading-snug break-keep text-[#2a2a2a]">{currentSaying.title}</h1>
-            <p className="text-[#a39f94] text-[10px] md:text-xs leading-relaxed tracking-wide break-keep opacity-80">{currentSaying.description}</p>
+            <p className="text-[#a39f94] text-[10px] md:text-xs leading-relaxed tracking-wide break-keep opacity-80 h-[36px] md:h-[48px] overflow-hidden">{currentSaying.description}</p>
           </div>
         </header>
 
