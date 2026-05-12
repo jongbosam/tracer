@@ -1,19 +1,105 @@
-/**
- * OCR Validation Logic integration point.
- * 
- * In a real application, you would:
- * 1. Convert the Canvas drawing data (dataURL/blob) to a format acceptable by Google Cloud Vision.
- * 2. Send the image to the Vision API (`https://vision.googleapis.com/v1/images:annotate`).
- * 3. Receive the bounding boxes and text.
- * 4. Map the bounding boxes to the CSS Grid coordinates to figure out which character belongs to which cell.
- * 5. Compare the parsed character with the `originalCharacters` array.
- */
+import { GoogleGenAI } from "@google/genai";
 
-export async function processOCR(
+/**
+ * OCR Validation Logic using Gemini API.
+ */
+export async function processAIOCR(
     canvasDataUrl: string, 
     originalCharacters: string[]
 ): Promise<{ results: (boolean | null)[], accuracy: number, errorCount: number }> {
     
+    // We expect the user to provide the Gemini API Key
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("No Gemini API key found. Please set NEXT_PUBLIC_GEMINI_API_KEY.");
+        return processPixelOCR(canvasDataUrl, originalCharacters);
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+    const base64ImageData = canvasDataUrl.split(',')[1];
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3.1-pro-preview",
+            contents: {
+                parts: [
+                    {
+                        text: `This image contains a user's handwritten strokes corresponding to a 10 cols x 5 rows grid (the grid lines themselves are not drawn, just the ink strokes).
+The original text to trace mapped to each of the 50 cells from left-to-right, top-to-bottom is provided below. An empty string "" means the cell should be blank.
+
+Original cells:
+${JSON.stringify(originalCharacters)}
+
+Task: Evaluate the handwritten text in the image cell by cell. For each cell:
+- if the expected cell is "" and the user drew nothing there, return "null".
+- if the expected cell is "" but the user drew something there, return "false".
+- if the expected cell has a character and the user correctly drew it (with reasonable handwriting tolerance), return "true".
+- if the expected cell has a character but the user drew a completely wrong character or left it empty, return "false".
+
+Return a JSON array of length 50 containing ONLY the strings "true", "false", or "null".`
+                    },
+                    {
+                        inlineData: {
+                            data: base64ImageData,
+                            mimeType: "image/png"
+                        }
+                    }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+            }
+        });
+
+        const jsonStr = response.text?.trim() || "[]";
+        const parsedArray: string[] = JSON.parse(jsonStr);
+
+        let errorCount = 0;
+        let totalTargetChars = 0;
+
+        const results: (boolean | null)[] = parsedArray.map((val, index) => {
+            const expectedChar = originalCharacters[index];
+            const isTarget = expectedChar && expectedChar.trim() !== '';
+            if (isTarget) {
+                totalTargetChars++;
+            }
+
+            if (val === "null") return null;
+            if (val === "false") {
+                if (isTarget) errorCount++;
+                return false;
+            }
+            if (val === "true") {
+                // if it wasn't a target, but evaluated to true (shouldn't happen based on prompt), count as false
+                if (!isTarget) return false;
+                return true;
+            }
+            return null;
+        });
+
+        const accuracy = totalTargetChars > 0 
+            ? Math.round(((totalTargetChars - errorCount) / totalTargetChars) * 100) 
+            : 100;
+
+        return {
+            results,
+            accuracy,
+            errorCount
+        };
+
+    } catch (e) {
+        console.error("Gemini API OCR failed:", e);
+    }
+
+    // Fallback
+    console.log("Falling back to processPixelOCR...");
+    return processPixelOCR(canvasDataUrl, originalCharacters);
+}
+
+export async function processPixelOCR(
+    canvasDataUrl: string, 
+    originalCharacters: string[]
+): Promise<{ results: (boolean | 'filled' | null)[], accuracy: number, errorCount: number }> {
     // Create an image from the data URL to inspect pixel data
     const img = new window.Image();
     img.src = canvasDataUrl;
@@ -42,20 +128,13 @@ export async function processOCR(
     const cellWidth = canvas.width / COLS;
     const cellHeight = canvas.height / ROWS;
 
-    let errorCount = 0;
-    let totalTargetChars = 0;
-    const results: (boolean | null)[] = originalCharacters.map((expectedChar, index) => {
+    const results: (boolean | 'filled' | null)[] = originalCharacters.map((expectedChar, index) => {
         // Skip empty cells
         if (!expectedChar.trim()) return null;
-        
-        totalTargetChars++;
         
         const col = index % COLS;
         const row = Math.floor(index / COLS);
         
-        // Define bounding box for the cell
-        // We will add a small margin (e.g. 15%) so it doesn't count strokes that barely cross the border
-        // or just tiny dots
         const marginX = cellWidth * 0.20;
         const marginY = cellHeight * 0.20;
         const startX = Math.floor(col * cellWidth + marginX);
@@ -70,34 +149,24 @@ export async function processOCR(
                 const i = (y * canvas.width + x) * 4;
                 const alpha = data[i + 3]; // alpha channel
                 
-                // If it's not mostly transparent, it has ink
                 if (alpha > 5) {
                     inkPixels++;
                 }
             }
         }
 
-        // We require a minimum amount of ink to count the cell as "written"
-        // Using a fixed low absolute number of pixels is safer than a percentage
-        // if user draws thin strokes
-        const minPixels = 10; // Require just a small stroke to exist
-
-        const isError = inkPixels < minPixels; 
+        const minPixels = 10; 
+        const isFilled = inkPixels >= minPixels; 
         
-        if (isError) {
-            errorCount++;
-            return false; // Wrong / Unwritten
+        if (isFilled) {
+            return 'filled'; 
         }
-        return true; // Correct
+        return null; // Don't mark it wrong instantly, just not filled.
     });
-
-    const accuracy = totalTargetChars > 0 
-        ? Math.round(((totalTargetChars - errorCount) / totalTargetChars) * 100) 
-        : 100;
 
     return {
         results,
-        accuracy,
-        errorCount
+        accuracy: 100, // Pixel OCR real-time doesn't judge accuracy
+        errorCount: 0
     };
 }

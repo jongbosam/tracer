@@ -169,7 +169,7 @@ export default function Sidebar({ onClearCanvas, onCheck }: { onClearCanvas: () 
            onClick={onCheck}
            className="flex-1 md:w-full py-3 md:py-4 bg-[#5a5a40] text-white rounded-full font-sans text-[10px] md:text-sm tracking-widest uppercase hover:opacity-90 transition-opacity"
          >
-            확인하기
+            최종 제출 (AI 채점)
          </button>
          <button 
            onClick={onClearCanvas}

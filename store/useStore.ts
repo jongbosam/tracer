@@ -64,7 +64,7 @@ interface AppState {
   timer: number;
   isTimerRunning: boolean;
   stats: Stats;
-  cellResults: (boolean | null)[]; // null = unchecked, true = correct, false = wrong
+  cellResults: (boolean | 'filled' | null)[]; // null = unchecked, 'filled' = drawn but unverified, true = correct, false = wrong
   theme: {
     gridColor: string;
     bgmEnabled: boolean;
@@ -84,7 +84,7 @@ interface AppState {
   tickTimer: () => void;
   startTimer: () => void;
   stopTimer: () => void;
-  setCellResults: (results: (boolean | null)[]) => void;
+  setCellResults: (results: (boolean | 'filled' | null)[]) => void;
   updateStats: (accuracy: number, errors: number) => void;
   clearResults: () => void;
   setTheme: (updates: Partial<AppState['theme']>) => void;

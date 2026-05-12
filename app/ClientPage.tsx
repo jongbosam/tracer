@@ -6,7 +6,7 @@ import TranscriptionBoard from '../components/TranscriptionBoard';
 import Pagination from '../components/Pagination';
 import { useStore } from '../store/useStore';
 import { DrawingCanvasRef } from '../components/DrawingCanvas';
-import { processOCR } from '../lib/ocr';
+import { processAIOCR, processPixelOCR } from '../lib/ocr';
 import { Loader2 } from 'lucide-react';
 import SettingsModal from '../components/SettingsModal';
 import BGMPlayer from '../components/BGMPlayer';
@@ -80,17 +80,35 @@ export default function ClientPage() {
           // 2. Extract current page's target text mapping
           const targetText = pages[currentPage];
 
-          // 3. Send to simulated Vision API OCR
-          const validation = await processOCR(capturedDrawing, targetText);
+          // 3. Send to Gemini API OCR
+          const validation = await processAIOCR(capturedDrawing, targetText);
 
           // 4. Record Results into Store to trigger visual updates
           setCellResults(validation.results);
           updateStats(validation.accuracy, validation.errorCount);
 
       } catch(err) {
-          console.error("OCR validation failed", err);
+          console.error("AI OCR validation failed", err);
       } finally {
           setIsProcessing(false);
+      }
+  };
+
+  const handleStrokeEnd = async () => {
+      if (!canvasRef.current || isProcessing) return;
+      
+      try {
+          const capturedDrawing = canvasRef.current.getDataUrl();
+          const targetText = pages[currentPage];
+
+          // 3. Send to pixel OCR
+          const validation = await processPixelOCR(capturedDrawing, targetText);
+
+          // 4. Record Results into Store to trigger visual updates
+          setCellResults(validation.results);
+          updateStats(validation.accuracy, validation.errorCount);
+      } catch(err) {
+          console.error("Pixel OCR validation failed", err);
       }
   };
 
@@ -126,7 +144,7 @@ export default function ClientPage() {
         </header>
 
         <div className="w-full max-w-5xl mx-auto mb-8 bg-[#fdfbf7] sticky top-0 z-30 pt-2 md:pt-0 md:static">
-           <TranscriptionBoard canvasRef={canvasRef} />
+           <TranscriptionBoard canvasRef={canvasRef} onStrokeEnd={handleStrokeEnd} />
         </div>
         
         <div className="mb-12">

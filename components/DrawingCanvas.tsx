@@ -8,7 +8,11 @@ export interface DrawingCanvasRef {
   getDataUrl: () => string;
 }
 
-const DrawingCanvas = forwardRef<DrawingCanvasRef>((props, ref) => {
+interface DrawingCanvasProps {
+  onStrokeEnd?: () => void;
+}
+
+const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(({ onStrokeEnd }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
@@ -123,6 +127,10 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef>((props, ref) => {
   const stopDrawing = () => {
     if (!ctx) return;
     ctx.closePath();
+    if (isDrawing.current && onStrokeEnd) {
+      // Fire onStrokeEnd only if we were actually drawing
+      onStrokeEnd();
+    }
     isDrawing.current = false;
   };
 
