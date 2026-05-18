@@ -61,6 +61,7 @@ interface AppState {
   penColor: string;
   penSize: number;
   isEraser: boolean;
+  penOnlyMode: boolean;
   timer: number;
   isTimerRunning: boolean;
   canUndo: boolean;
@@ -83,6 +84,7 @@ interface AppState {
   setPenColor: (color: string) => void;
   setPenSize: (size: number) => void;
   toggleEraser: () => void;
+  togglePenOnlyMode: () => void;
   tickTimer: () => void;
   startTimer: () => void;
   stopTimer: () => void;
@@ -104,6 +106,7 @@ export const useStore = create<AppState>((set) => ({
   penColor: '#1a1a1a',
   penSize: 2,
   isEraser: false,
+  penOnlyMode: false,
   timer: 0,
   isTimerRunning: false,
   canUndo: false,
@@ -156,6 +159,7 @@ export const useStore = create<AppState>((set) => ({
   setPenColor: (color) => set({ penColor: color, isEraser: false }),
   setPenSize: (size) => set({ penSize: size }),
   toggleEraser: () => set((state) => ({ isEraser: !state.isEraser })),
+  togglePenOnlyMode: () => set((state) => ({ penOnlyMode: !state.penOnlyMode })),
   
   tickTimer: () => set((state) => ({ timer: state.isTimerRunning ? state.timer + 1 : state.timer })),
   startTimer: () => set({ isTimerRunning: true }),

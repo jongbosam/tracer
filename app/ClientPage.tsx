@@ -16,6 +16,7 @@ export default function ClientPage() {
   const canvasRef = useRef<DrawingCanvasRef>(null);
   const { pages, currentPage, updateStats, setCellResults, stopTimer } = useStore();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   // Random Idiom state
   const [currentSaying, setCurrentSaying] = useState(sayings[0]);
@@ -137,6 +138,8 @@ export default function ClientPage() {
           onCheck={handleCheck}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       
       <main className="flex-1 flex flex-col items-center justify-start md:justify-center relative p-4 md:p-12 overflow-y-auto">
@@ -149,20 +152,20 @@ export default function ClientPage() {
         )}
 
         <header 
-          className={`w-full h-[160px] md:h-[200px] flex flex-col items-center justify-center text-center bg-[#fdfbf7] transition-opacity duration-1000 ease-in-out border-b border-[#e3dfd6]/30 shrink-0 ${isFading ? 'opacity-0' : ''}`}
+          className={`w-full h-[160px] md:h-[180px] lg:landscape:h-[120px] flex flex-col items-center justify-center text-center bg-[#fdfbf7] transition-opacity duration-1000 ease-in-out border-b border-[#e3dfd6]/30 shrink-0 ${isFading ? 'opacity-0' : ''}`}
         >
           <div className="max-w-2xl mx-auto px-4">
-            <p className="text-[10px] md:text-xs italic text-[#8c887d] mb-1 md:mb-2 uppercase tracking-tighter">오늘의 문장</p>
-            <h1 className="text-lg md:text-2xl font-normal mb-2 md:mb-3 leading-snug break-keep text-[#2a2a2a]">{currentSaying.title}</h1>
-            <p className="text-[#a39f94] text-[10px] md:text-xs leading-relaxed tracking-wide break-keep opacity-80 h-[36px] md:h-[48px] overflow-hidden">{currentSaying.description}</p>
+            <p className="text-[10px] md:text-xs italic text-[#8c887d] mb-1 md:mb-2 lg:landscape:mb-1 uppercase tracking-tighter">오늘의 문장</p>
+            <h1 className="text-lg md:text-2xl lg:landscape:text-xl font-normal mb-2 md:mb-3 lg:landscape:mb-1 leading-snug break-keep text-[#2a2a2a]">{currentSaying.title}</h1>
+            <p className="text-[#a39f94] text-[10px] md:text-xs leading-relaxed tracking-wide break-keep opacity-80 h-[36px] md:h-[48px] lg:landscape:h-[auto] overflow-hidden">{currentSaying.description}</p>
           </div>
         </header>
 
-        <div className="w-full max-w-5xl mx-auto mb-8 bg-[#fdfbf7] sticky top-0 z-30 pt-2 md:pt-0 md:static">
+        <div className="w-full max-w-[min(100%,140vh)] mx-auto mb-8 lg:landscape:mb-4 bg-[#fdfbf7] sticky top-0 z-30 pt-2 md:pt-0 md:static">
            <TranscriptionBoard canvasRef={canvasRef} onStrokeEnd={handleStrokeEnd} />
         </div>
         
-        <div className="mb-12">
+        <div className="mb-12 lg:landscape:mb-6">
           <Pagination onPageChange={handlePageChange} />
         </div>
         

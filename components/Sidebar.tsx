@@ -3,18 +3,22 @@
 import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { SAMPLE_TEXTS } from '../lib/sample-texts';
-import { Eraser, Undo2, Redo2 } from 'lucide-react';
+import { Eraser, Undo2, Redo2, Pen, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Sidebar({ 
   onClearCanvas, 
   onCheck,
   onUndo,
-  onRedo
+  onRedo,
+  isOpen,
+  onToggle
 }: { 
   onClearCanvas: () => void, 
   onCheck: () => void,
   onUndo: () => void,
-  onRedo: () => void
+  onRedo: () => void,
+  isOpen: boolean,
+  onToggle: () => void
 }) {
   const currentTextIndex = useStore((state) => state.currentTextIndex);
   const setTextIndex = useStore((state) => state.setTextIndex);
@@ -26,6 +30,8 @@ export default function Sidebar({
   const setPenSize = useStore((state) => state.setPenSize);
   const isEraser = useStore((state) => state.isEraser);
   const toggleEraser = useStore((state) => state.toggleEraser);
+  const penOnlyMode = useStore((state) => state.penOnlyMode);
+  const togglePenOnlyMode = useStore((state) => state.togglePenOnlyMode);
   const timer = useStore((state) => state.timer);
   const isTimerRunning = useStore((state) => state.isTimerRunning);
   const tickTimer = useStore((state) => state.tickTimer);
@@ -52,13 +58,41 @@ export default function Sidebar({
     return `${m}:${s}`;
   };
 
+  if (!isOpen) {
+    return (
+      <button 
+        onClick={onToggle}
+        className="fixed top-1/2 -translate-y-1/2 left-0 md:left-4 z-50 p-1.5 bg-white border border-l-0 md:border-l border-[#e3dfd6] rounded-r-md md:rounded-full shadow-sm text-[#8c887d] hover:text-[#5a5a40] hover:bg-[#f5f2ed] transition-colors"
+        title="사이드바 열기"
+      >
+        <ChevronRight className="w-5 h-5 md:w-4 md:h-4" />
+      </button>
+    );
+  }
+
   return (
-    <aside className="w-full md:w-80 bg-[#f5f2ed] border-b md:border-b-0 md:border-r border-[#e3dfd6] p-4 md:p-8 flex flex-col shrink-0 transition-all font-serif text-[#1a1a1a] overflow-y-auto md:h-full z-30">
-      
-      <div className="space-y-6 md:space-y-10 flex flex-col sm:flex-row md:flex-col gap-4 sm:gap-8 md:gap-0">
-        <div className="shrink-0">
-          {/* User Profile */}
-          <div className="flex items-center gap-4 mb-4 md:mb-6">
+    <aside className="w-full md:w-80 bg-[#f5f2ed] border-b md:border-b-0 md:border-r border-[#e3dfd6] flex flex-col shrink-0 transition-all font-serif text-[#1a1a1a] md:h-full z-30 relative">
+      <button 
+        onClick={onToggle}
+        className="hidden md:flex absolute top-1/2 -translate-y-1/2 -right-4 p-1.5 bg-white border border-[#e3dfd6] rounded-full shadow-sm text-[#8c887d] hover:text-[#5a5a40] hover:bg-[#f5f2ed] transition-colors z-40"
+        title="사이드바 닫기"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      <div className="p-4 md:p-8 overflow-y-auto h-full flex flex-col w-full">
+        <div className="space-y-6 md:space-y-10 flex flex-col sm:flex-row md:flex-col gap-4 sm:gap-8 md:gap-0 relative">
+          <div className="shrink-0">
+            {/* User Profile */}
+            <div className="flex items-center gap-4 mb-4 md:mb-6">
+              {/* Mobile close button inside header area */}
+              <button 
+                onClick={onToggle}
+                className="md:hidden mr-2 p-1.5 bg-white border border-[#e3dfd6] rounded-md shadow-sm text-[#8c887d] hover:text-[#5a5a40] hover:bg-[#f5f2ed] transition-colors"
+                title="사이드바 닫기"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#5a5a40] flex items-center justify-center text-white font-sans text-lg md:text-xl">
               YS
             </div>
@@ -183,6 +217,17 @@ export default function Sidebar({
                 >
                     <Eraser className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 </button>
+                <button
+                   onClick={togglePenOnlyMode}
+                   className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-colors ${
+                     penOnlyMode 
+                       ? 'bg-blue-500 text-white border-transparent' 
+                       : 'bg-white text-[#1a1a1a] border border-[#e3dfd6]'
+                   }`}
+                   title={penOnlyMode ? "Pen/Stylus Only: ON" : "Any Touch: ON (Click to require Pen)"}
+                >
+                    <Pen className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
               </div>
 
               <div className="flex items-center bg-white border border-[#e3dfd6] rounded-full px-2 md:px-3 gap-1 md:gap-2 relative min-w-[60px] md:min-w-[80px] h-7 md:h-8">
@@ -196,7 +241,7 @@ export default function Sidebar({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 md:flex-col md:space-y-4 mt-6 md:mt-10">
+      <div className="flex gap-3 md:flex-col md:space-y-4 pt-4 md:pt-6 mt-6 md:mt-10 border-t border-[#e3dfd6]">
          <button 
            onClick={onCheck}
            className="flex-1 md:w-full py-3 md:py-4 bg-[#5a5a40] text-white rounded-full font-sans text-[10px] md:text-sm tracking-widest uppercase hover:opacity-90 transition-opacity"
@@ -209,6 +254,7 @@ export default function Sidebar({
          >
             Clear
          </button>
+      </div>
       </div>
     </aside>
   );
