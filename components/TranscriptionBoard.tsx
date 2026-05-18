@@ -2,7 +2,6 @@
 
 import { useStore } from '../store/useStore';
 import DrawingCanvas, { DrawingCanvasRef } from './DrawingCanvas';
-import { motion, AnimatePresence } from 'motion/react';
 
 export default function TranscriptionBoard({ canvasRef, onStrokeEnd }: { canvasRef: React.RefObject<DrawingCanvasRef | null>, onStrokeEnd?: () => void }) {
   const pages = useStore((state) => state.pages);
@@ -10,6 +9,7 @@ export default function TranscriptionBoard({ canvasRef, onStrokeEnd }: { canvasR
   const opacity = useStore((state) => state.opacity);
   const cellResults = useStore((state) => state.cellResults);
   const theme = useStore((state) => state.theme);
+  const setHistoryState = useStore((state) => state.setHistoryState);
   
   const currentChars = pages[currentPage] || [];
 
@@ -48,23 +48,17 @@ export default function TranscriptionBoard({ canvasRef, onStrokeEnd }: { canvasR
                 {/* Text Layer (Original Reference Text) */}
                 {char && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 font-bold">
-                    <AnimatePresence mode="popLayout">
-                      <motion.span 
-                         key={result === true && theme.textEffect ? 'animated' : 'static'}
-                         className="text-[#1a1a1a] select-none"
-                         style={{ 
-                           opacity, 
-                           fontFamily: theme.fontFamily,
-                           fontSize: '7cqw',
-                           lineHeight: 1
-                         }}
-                         initial={result === true && theme.textEffect ? { scale: 0.5, rotate: -10, color: '#10b981' } : false}
-                         animate={result === true && theme.textEffect ? { scale: 1, rotate: 0, color: '#10b981' } : {}}
-                         transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                      >
-                        {char}
-                      </motion.span>
-                    </AnimatePresence>
+                    <span 
+                       className="text-[#1a1a1a] select-none"
+                       style={{ 
+                         opacity, 
+                         fontFamily: theme.fontFamily,
+                         fontSize: '7cqw',
+                         lineHeight: 1
+                       }}
+                    >
+                      {char}
+                    </span>
                   </div>
                 )}
               </div>
@@ -73,7 +67,7 @@ export default function TranscriptionBoard({ canvasRef, onStrokeEnd }: { canvasR
         </div>
 
         {/* The drawing layer overlayed perfectly on top of the grid */}
-        <DrawingCanvas ref={canvasRef} onStrokeEnd={onStrokeEnd} />
+        <DrawingCanvas ref={canvasRef} onStrokeEnd={onStrokeEnd} onHistoryChange={setHistoryState} />
       </div>
     </div>
   );

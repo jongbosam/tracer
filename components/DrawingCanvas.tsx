@@ -5,19 +5,54 @@ import { useStore } from '../store/useStore';
 
 export interface DrawingCanvasRef {
   clear: () => void;
+  resetHistory: () => void;
   getDataUrl: () => string;
+  undo: () => void;
+  redo: () => void;
 }
 
 interface DrawingCanvasProps {
   onStrokeEnd?: () => void;
+  onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
 }
 
-const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(({ onStrokeEnd }, ref) => {
+const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(({ onStrokeEnd, onHistoryChange }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
   
+  const undoStack = useRef<string[]>([]);
+  const redoStack = useRef<string[]>([]);
+
   const { penColor, penSize, isEraser, startTimer } = useStore();
+
+  const saveState = () => {
+    if (!canvasRef.current) return;
+    undoStack.current.push(canvasRef.current.toDataURL());
+    redoStack.current = [];
+    notifyHistoryChange();
+  };
+
+  const notifyHistoryChange = () => {
+    if (onHistoryChange) {
+      onHistoryChange(undoStack.current.length > 0, redoStack.current.length > 0);
+    }
+  };
+
+  const restoreState = (dataUrl: string, callback?: () => void) => {
+    if (!canvasRef.current || !ctx) return;
+    const img = new window.Image();
+    img.src = dataUrl;
+    img.onload = () => {
+      if (!canvasRef.current || !ctx) return;
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvasRef.current.width, canvasRef.current.height);
+      ctx.restore();
+      if (callback) callback();
+    };
+  };
 
   // Handle Resize correctly to avoid aspect ratio stretching
   useEffect(() => {
@@ -81,8 +116,14 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(({ onStro
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (canvasRef.current && ctx) {
+        saveState();
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       }
+    },
+    resetHistory: () => {
+      undoStack.current = [];
+      redoStack.current = [];
+      notifyHistoryChange();
     },
     getDataUrl: () => {
       // Export just the drawing without background (it's transparent)
@@ -92,11 +133,42 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(({ onStro
         return canvasRef.current.toDataURL('image/png');
       }
       return '';
+    },
+    undo: () => {
+      if (undoStack.current.length > 0) {
+        if (canvasRef.current) {
+          redoStack.current.push(canvasRef.current.toDataURL());
+        }
+        const previousState = undoStack.current.pop();
+        if (previousState) {
+          restoreState(previousState, () => {
+            if (onStrokeEnd) onStrokeEnd();
+          });
+        }
+        notifyHistoryChange();
+      }
+    },
+    redo: () => {
+      if (redoStack.current.length > 0) {
+        if (canvasRef.current) {
+          undoStack.current.push(canvasRef.current.toDataURL());
+        }
+        const nextState = redoStack.current.pop();
+        if (nextState) {
+          restoreState(nextState, () => {
+            if (onStrokeEnd) onStrokeEnd();
+          });
+        }
+        notifyHistoryChange();
+      }
     }
   }));
 
   const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!ctx || !canvasRef.current) return;
+    
+    saveState();
+    
     isDrawing.current = true;
     startTimer(); // Start timer on first interaction
 

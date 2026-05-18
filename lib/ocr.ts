@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 /**
  * OCR Validation Logic using Gemini API.
@@ -6,7 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 export async function processAIOCR(
     canvasDataUrl: string, 
     originalCharacters: string[]
-): Promise<{ results: (boolean | null)[], accuracy: number, errorCount: number }> {
+): Promise<{ results: (boolean | 'filled' | null)[], accuracy: number, errorCount: number }> {
     
     // We expect the user to provide the Gemini API Key
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -16,84 +16,168 @@ export async function processAIOCR(
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    const base64ImageData = canvasDataUrl.split(',')[1];
-    
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-3.1-pro-preview",
-            contents: {
-                parts: [
-                    {
-                        text: `This image contains a user's handwritten strokes corresponding to a 10 cols x 5 rows grid (the grid lines themselves are not drawn, just the ink strokes).
-The original text to trace mapped to each of the 50 cells from left-to-right, top-to-bottom is provided below. An empty string "" means the cell should be blank.
+    const img = new window.Image();
+    img.src = canvasDataUrl;
+    await new Promise((resolve) => {
+        img.onload = resolve;
+    });
 
-Original cells:
-${JSON.stringify(originalCharacters)}
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error("Could not get 2d context for pixel analysis");
 
-Task: Evaluate the handwritten text in the image cell by cell. For each cell:
-- if the expected cell is "" and the user drew nothing there, return "null".
-- if the expected cell is "" but the user drew something there, return "false".
-- if the expected cell has a character and the user correctly drew it (with reasonable handwriting tolerance), return "true".
-- if the expected cell has a character but the user drew a completely wrong character or left it empty, return "false".
+    // We must ensure the background is white before saving to JPEG
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
 
-Return a JSON array of length 50 containing ONLY the strings "true", "false", or "null".`
-                    },
-                    {
-                        inlineData: {
-                            data: base64ImageData,
-                            mimeType: "image/png"
-                        }
-                    }
-                ]
-            },
-            config: {
-                responseMimeType: "application/json",
+    // Create a separate invisible canvas for alpha check (to detect ink reliably)
+    const alphaCanvas = document.createElement('canvas');
+    alphaCanvas.width = img.width;
+    alphaCanvas.height = img.height;
+    const alphaCtx = alphaCanvas.getContext('2d');
+    if (!alphaCtx) throw new Error("Could not get 2d context");
+    alphaCtx.drawImage(img, 0, 0);
+    const alphaData = alphaCtx.getImageData(0, 0, alphaCanvas.width, alphaCanvas.height).data;
+
+    const COLS = 10;
+    const ROWS = 5;
+    const cellWidth = canvas.width / COLS;
+    const cellHeight = canvas.height / ROWS;
+
+    const results: (boolean | 'filled' | null)[] = new Array(originalCharacters.length).fill(null);
+    const cellsToVerify: { index: number, expectedChar: string, dataUrl: string }[] = [];
+
+    let totalTargetChars = 0;
+
+    for (let index = 0; index < originalCharacters.length; index++) {
+        const expectedChar = originalCharacters[index];
+        const col = index % COLS;
+        const row = Math.floor(index / COLS);
+        
+        const isTarget = expectedChar && expectedChar.trim() !== '';
+        if (isTarget) totalTargetChars++;
+
+        let inkPixels = 0;
+        const startX = Math.floor(col * cellWidth);
+        const startY = Math.floor(row * cellHeight);
+        const endX = Math.floor((col + 1) * cellWidth);
+        const endY = Math.floor((row + 1) * cellHeight);
+
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
+                const i = (y * alphaCanvas.width + x) * 4;
+                const alpha = alphaData[i + 3]; // alpha channel
+                if (alpha > 5) {
+                    inkPixels++;
+                }
             }
-        });
+        }
 
-        const jsonStr = response.text?.trim() || "[]";
-        const parsedArray: string[] = JSON.parse(jsonStr);
+        const minPixels = 10; 
+        const hasInk = inkPixels >= minPixels;
 
-        let errorCount = 0;
-        let totalTargetChars = 0;
-
-        const results: (boolean | null)[] = parsedArray.map((val, index) => {
-            const expectedChar = originalCharacters[index];
-            const isTarget = expectedChar && expectedChar.trim() !== '';
-            if (isTarget) {
-                totalTargetChars++;
+        if (isTarget) {
+            if (!hasInk) {
+                // Target has no ink -> marked as false (wrong)
+                results[index] = false;
+            } else {
+                // Target has ink -> needs AI validation
+                // Crop this cell from the white-background ctx
+                const cellImageData = ctx.getImageData(startX, startY, endX - startX, endY - startY);
+                const cropCanvas = document.createElement('canvas');
+                cropCanvas.width = endX - startX;
+                cropCanvas.height = endY - startY;
+                const cropCtx = cropCanvas.getContext('2d');
+                if (cropCtx) {
+                    cropCtx.putImageData(cellImageData, 0, 0);
+                    // Use jpeg for smaller payload
+                    const base64 = cropCanvas.toDataURL('image/jpeg', 0.8).split(",")[1];
+                    cellsToVerify.push({ index, expectedChar, dataUrl: base64 });
+                }
             }
-
-            if (val === "null") return null;
-            if (val === "false") {
-                if (isTarget) errorCount++;
-                return false;
+        } else {
+            // Not target
+            if (hasInk) {
+                // Should be blank but has ink -> false
+                results[index] = false;
+            } else {
+                // Blank and no ink -> null
+                results[index] = null;
             }
-            if (val === "true") {
-                // if it wasn't a target, but evaluated to true (shouldn't happen based on prompt), count as false
-                if (!isTarget) return false;
-                return true;
-            }
-            return null;
-        });
-
-        const accuracy = totalTargetChars > 0 
-            ? Math.round(((totalTargetChars - errorCount) / totalTargetChars) * 100) 
-            : 100;
-
-        return {
-            results,
-            accuracy,
-            errorCount
-        };
-
-    } catch (e) {
-        console.error("Gemini API OCR failed:", e);
+        }
     }
 
-    // Fallback
-    console.log("Falling back to processPixelOCR...");
-    return processPixelOCR(canvasDataUrl, originalCharacters);
+    if (cellsToVerify.length > 0) {
+        // Send to AI
+        const parts: Array<{text?: string, inlineData?: {mimeType: string, data: string}}> = [
+            { text: "Evaluate if the handwritten text images match their corresponding expected characters. Be slightly lenient with handwriting handwriting styles." }
+        ];
+
+        cellsToVerify.forEach((cell, i) => {
+            parts.push({ text: `Image ${i + 1}. Expected match: "${cell.expectedChar}"` });
+            parts.push({
+                inlineData: {
+                    mimeType: "image/jpeg",
+                    data: cell.dataUrl
+                }
+            });
+        });
+
+        parts.push({ text: `Return a JSON array of boolean values (true/false) in the exact order of the images with length ${cellsToVerify.length}. Return true if the image contains the expected character, false otherwise.` });
+
+        try {
+            const response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: { parts },
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: Type.ARRAY,
+                        items: { type: Type.BOOLEAN }
+                    }
+                }
+            });
+
+            const parsedArray: boolean[] = JSON.parse(response.text || "[]");
+
+            cellsToVerify.forEach((cell, i) => {
+                results[cell.index] = parsedArray[i] ?? false;
+            });
+        } catch (error) {
+            console.error("AI validation error, falling back to true for filled cells", error);
+            cellsToVerify.forEach((cell) => {
+                results[cell.index] = true; // Fallback to avoid breaking completely
+            });
+        }
+    }
+
+    // Calculate errorCount
+    let errorCount = 0;
+    results.forEach((res, idx) => {
+        const isTarget = originalCharacters[idx] && originalCharacters[idx].trim() !== '';
+        // If it's a target cell and it evaluated to false OR was left null/unfilled when expected
+        if (isTarget && (res === false || res === null)) {
+            errorCount++;
+        }
+        // If it was NOT a target cell but has ink
+        else if (!isTarget && res === false) {
+             // Let's count it as an error
+             errorCount++;
+        }
+    });
+
+    const accuracy = totalTargetChars > 0 
+        ? Math.round(((totalTargetChars - errorCount) / totalTargetChars) * 100) 
+        : 100;
+
+    return {
+        results,
+        accuracy: Math.max(0, accuracy),
+        errorCount
+    };
 }
 
 export async function processPixelOCR(

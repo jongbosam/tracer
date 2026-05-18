@@ -63,6 +63,8 @@ interface AppState {
   isEraser: boolean;
   timer: number;
   isTimerRunning: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   stats: Stats;
   cellResults: (boolean | 'filled' | null)[]; // null = unchecked, 'filled' = drawn but unverified, true = correct, false = wrong
   theme: {
@@ -84,6 +86,7 @@ interface AppState {
   tickTimer: () => void;
   startTimer: () => void;
   stopTimer: () => void;
+  setHistoryState: (canUndo: boolean, canRedo: boolean) => void;
   setCellResults: (results: (boolean | 'filled' | null)[]) => void;
   updateStats: (accuracy: number, errors: number) => void;
   clearResults: () => void;
@@ -103,6 +106,8 @@ export const useStore = create<AppState>((set) => ({
   isEraser: false,
   timer: 0,
   isTimerRunning: false,
+  canUndo: false,
+  canRedo: false,
   stats: {
     completion: 0,
     accuracy: 100,
@@ -126,6 +131,8 @@ export const useStore = create<AppState>((set) => ({
       cellResults: new Array(CHARS_PER_PAGE).fill(null),
       timer: 0,
       isTimerRunning: false,
+      canUndo: false,
+      canRedo: false,
       stats: { completion: 0, accuracy: 100, errorCount: 0 }
     };
   }),
@@ -134,12 +141,16 @@ export const useStore = create<AppState>((set) => ({
   
   nextPage: () => set((state) => ({ 
     currentPage: Math.min(state.currentPage + 1, state.pages.length - 1),
-    cellResults: new Array(CHARS_PER_PAGE).fill(null) // clear on page change
+    cellResults: new Array(CHARS_PER_PAGE).fill(null), // clear on page change
+    canUndo: false,
+    canRedo: false
   })),
   
   prevPage: () => set((state) => ({ 
     currentPage: Math.max(state.currentPage - 1, 0),
-    cellResults: new Array(CHARS_PER_PAGE).fill(null)
+    cellResults: new Array(CHARS_PER_PAGE).fill(null),
+    canUndo: false,
+    canRedo: false
   })),
 
   setPenColor: (color) => set({ penColor: color, isEraser: false }),
@@ -150,6 +161,8 @@ export const useStore = create<AppState>((set) => ({
   startTimer: () => set({ isTimerRunning: true }),
   stopTimer: () => set({ isTimerRunning: false }),
   
+  setHistoryState: (canUndo, canRedo) => set({ canUndo, canRedo }),
+
   setCellResults: (results) => set({ cellResults: results }),
   updateStats: (accuracy, errors) => set((state) => {
     // Simple completion calc for demo based on page progress

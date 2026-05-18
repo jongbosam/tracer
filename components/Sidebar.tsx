@@ -3,9 +3,19 @@
 import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { SAMPLE_TEXTS } from '../lib/sample-texts';
-import { Eraser } from 'lucide-react';
+import { Eraser, Undo2, Redo2 } from 'lucide-react';
 
-export default function Sidebar({ onClearCanvas, onCheck }: { onClearCanvas: () => void, onCheck: () => void }) {
+export default function Sidebar({ 
+  onClearCanvas, 
+  onCheck,
+  onUndo,
+  onRedo
+}: { 
+  onClearCanvas: () => void, 
+  onCheck: () => void,
+  onUndo: () => void,
+  onRedo: () => void
+}) {
   const currentTextIndex = useStore((state) => state.currentTextIndex);
   const setTextIndex = useStore((state) => state.setTextIndex);
   const opacity = useStore((state) => state.opacity);
@@ -20,6 +30,8 @@ export default function Sidebar({ onClearCanvas, onCheck }: { onClearCanvas: () 
   const isTimerRunning = useStore((state) => state.isTimerRunning);
   const tickTimer = useStore((state) => state.tickTimer);
   const stats = useStore((state) => state.stats);
+  const canUndo = useStore((state) => state.canUndo);
+  const canRedo = useStore((state) => state.canRedo);
 
   // Handle Timer
   useEffect(() => {
@@ -126,9 +138,29 @@ export default function Sidebar({ onClearCanvas, onCheck }: { onClearCanvas: () 
 
           {/* Drawing Tools */}
           <div>
-            <label className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c887d] block mb-2 md:mb-3 font-sans">
-              Brush Settings
-            </label>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <label className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c887d] block font-sans">
+                Brush Settings
+              </label>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  className={`p-1 rounded-md transition-colors ${canUndo ? 'text-[#5a5a40] hover:bg-[#e3dfd6]' : 'text-[#d9d5ce] cursor-not-allowed'}`}
+                  title="Undo"
+                >
+                  <Undo2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
+                <button
+                  onClick={onRedo}
+                  disabled={!canRedo}
+                  className={`p-1 rounded-md transition-colors ${canRedo ? 'text-[#5a5a40] hover:bg-[#e3dfd6]' : 'text-[#d9d5ce] cursor-not-allowed'}`}
+                  title="Redo"
+                >
+                  <Redo2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               <div className="flex gap-2">
                 {['#1a1a1a', '#4a6d8c', '#8c4a4a'].map((color) => (

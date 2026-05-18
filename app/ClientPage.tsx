@@ -62,6 +62,12 @@ export default function ClientPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    // Clear canvas automatically when text or page changes
+    handleClearCanvas();
+    canvasRef.current?.resetHistory();
+  }, [currentPage, pages]);
+
   const handleClearCanvas = () => {
       canvasRef.current?.clear();
   };
@@ -113,8 +119,15 @@ export default function ClientPage() {
   };
 
   const handlePageChange = () => {
-       // Clear canvas automatically when changing pages
-       handleClearCanvas();
+       // Effect will handle it
+  };
+
+  const handleUndo = () => {
+      canvasRef.current?.undo();
+  };
+
+  const handleRedo = () => {
+      canvasRef.current?.redo();
   };
 
   return (
@@ -122,6 +135,8 @@ export default function ClientPage() {
       <Sidebar 
           onClearCanvas={handleClearCanvas}
           onCheck={handleCheck}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
       />
       
       <main className="flex-1 flex flex-col items-center justify-start md:justify-center relative p-4 md:p-12 overflow-y-auto">
