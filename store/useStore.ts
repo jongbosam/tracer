@@ -104,7 +104,7 @@ export const useStore = create<AppState>((set) => ({
   currentPage: 0,
   opacity: 0.5, // Increased default from 0.35 for better visibility
   penColor: '#1a1a1a',
-  penSize: 2,
+  penSize: 4,
   isEraser: false,
   penOnlyMode: false,
   timer: 0,

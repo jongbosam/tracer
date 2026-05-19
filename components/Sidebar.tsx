@@ -174,7 +174,7 @@ export default function Sidebar({
           <div>
             <div className="flex items-center justify-between mb-2 md:mb-3">
               <label className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c887d] block font-sans">
-                Brush Settings
+                펜 설정
               </label>
               <div className="flex items-center gap-1">
                 <button
@@ -230,10 +230,20 @@ export default function Sidebar({
                 </button>
               </div>
 
-              <div className="flex items-center bg-white border border-[#e3dfd6] rounded-full px-2 md:px-3 gap-1 md:gap-2 relative min-w-[60px] md:min-w-[80px] h-7 md:h-8">
-                <span className="w-2 md:w-3 h-2 md:h-3 bg-black rounded-full" style={{ transform: `scale(${penSize / 5})` }}></span>
-                <span className="text-[10px] md:text-xs font-sans font-bold">{penSize}px</span>
-                <button aria-label="Change Pen Size" className="absolute inset-0 opacity-0 cursor-pointer" onClick={() => setPenSize(penSize >= 10 ? 1 : penSize + 1)} />
+              <div className="flex justify-between items-center bg-white border border-[#e3dfd6] rounded-full px-2 md:px-3 gap-1 md:gap-2 relative min-w-[60px] md:min-w-[80px] h-7 md:h-8">
+                <span className="w-2 md:w-3 h-2 md:h-3 bg-black rounded-full shrink-0" style={{ transform: `scale(${penSize / 5})` }}></span>
+                <span className="text-[10px] md:text-xs font-sans font-bold ml-auto text-right w-3 md:w-4">
+                  {penSize === 4 ? 'EF' : penSize === 6 ? 'F' : penSize === 8 ? 'M' : 'B'}
+                </span>
+                <button 
+                  aria-label="Change Pen Size" 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                  onClick={() => {
+                    const sizes = [4, 6, 8, 14];
+                    const currentIndex = sizes.indexOf(penSize) !== -1 ? sizes.indexOf(penSize) : 0;
+                    setPenSize(sizes[(currentIndex + 1) % sizes.length]);
+                  }} 
+                />
               </div>
             </div>
           </div>
